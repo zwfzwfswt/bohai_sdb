@@ -1,0 +1,77 @@
+# ============================================================
+# 渤海近岸水深反演 — 统一配置文件
+# ============================================================
+seed: 42
+device: cuda                      # cuda / cpu
+
+# ---------- 数据 ----------
+data:
+  planet_tif: null                # 必须在实验时指定
+  usv_shp: null                   # 必须在实验时指定
+  depth_field: "改正水"
+  patch_size: 64                  # 深度学习模型 patch 边长
+  valid_min: 0.0
+  valid_max: 10000.0                # Planet SR: 1.2; DN 产品: 10000
+  discard_if_nodata: true
+  train_ratio: 0.7
+  val_ratio: 0.15
+  n_bins_stratify: 10
+  augmentation: true              # 是否启用数据增强（仅 DL）
+
+# ---------- 训练 ----------
+train:
+  epochs: 200
+  batch_size: 32
+  optimizer: AdamW
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  scheduler: cosine_warm_restarts
+  T_0: 20
+  patience: 30                    # 早停耐心
+
+# ---------- 损失函数 ----------
+loss:
+  type: depth_weighted_mse        # mse / depth_weighted_mse
+  shallow_threshold: 5.0
+  shallow_weight: 2.0
+
+# ---------- 模型 ----------
+model:
+  name: swin_bathyunet_pp         # stumpf | rf | xgboost | lgbm | unet | swin_bathyunet | swin_bathyunet_pp
+  in_channels: 8
+  base_channels: 64
+  swin_depth: 2
+  swin_heads: 8
+  swin_window_size: 8
+  dropout: 0.1
+
+# ---------- 输出 ----------
+output:
+  dir: outputs
+  samples_npz: outputs/samples/samples.npz
+  scaler_npy: outputs/scaler/band_mean_std.npy
+  model_dir: outputs/models
+  plots_dir: outputs/plots
+  pred_csv: outputs/predictions/predictions.csv
+
+# ---------- 机器学习模型超参 ----------
+ml:
+  features:
+    - raw_bands
+    - log_bands
+    - ndwi
+    - band_ratios
+  rf:
+    n_estimators: 500
+    max_depth: 20
+    random_state: 42
+  xgboost:
+    n_estimators: 500
+    max_depth: 8
+    learning_rate: 0.05
+    random_state: 42
+  lgbm:
+    n_estimators: 500
+    max_depth: 8
+    learning_rate: 0.05
+    random_state: 42
